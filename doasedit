@@ -3,20 +3,20 @@
 #-----------------------------------------------------------Check some errors
 
 ERR(){
-	printf '%s\n' "doasedit: $1" && exit $2
+	printf '%s\n' "doasedit: $2" && exit $1
 }
 
-[ $UID = 0 ] && ERR 'denied to run as root...' 1
+[ $UID = 0 ] && ERR 1 'denied to run as root...'
 
-[ -z "$1" ] && ERR "doesn't has file to edit..." 1
+[ -z "$1" ] && ERR 1 "doesn't has file to edit..."
 
-[ -n "$2" ] && ERR 'only able to edit one file...' 1
+[ -n "$2" ] && ERR 1 'only able to edit one file...'
 
-[ ! -f "$1" ] && ERR "$1 is a directory or doesn't exist..." 1
+[ ! -f "$1" ] && ERR 1 "$1 is a directory or doesn't exist..."
 
-[ ! -r "$1" ] && ERR "doesn't has permission to read $1..." 1
+[ ! -r "$1" ] && ERR 1 "doesn't has permission to read $1..."
 
-[ -w "$1" ] && ERR "$1 doesn't need root access to write..." 1
+[ -w "$1" -o -O "$1" ] && ERR 1 "$1 doesn't need root access..."
 
 #-----------------------------------------------------------Prepare and Set variables
 
@@ -32,7 +32,7 @@ TmpFile="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 ${EDITOR:-vi} $TmpFile
 
 # Doesn't do Anything If File's Content Doesn't Change
-cmp $1 $TmpFile -s && rm -f $TmpFile && ERR "$1 doesn't change..." 0
+cmp $1 $TmpFile -s && rm -f $TmpFile && ERR 0 "$1 doesn't change..."
 
 while :; do
 
