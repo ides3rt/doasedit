@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+trap 'unset ERR TmpFile' EXIT SIGINT SIGKILL SIGTERM
+
 #-----------------------------------------------------------Check some errors
 
 ERR(){
@@ -60,5 +62,3 @@ while :; do
 done
 
 rm -f $TmpFile
-
-unset ERR TmpFile
