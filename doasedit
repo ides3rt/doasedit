@@ -2,63 +2,63 @@
 
 #-----------------------------------------------------------Check some errors
 
-[ "$UID" = 0 ] && echo "doasedit: denied to run as root..." && exit 1
+ERR(){
+	printf '%s\n' "doasedit: $1" && exit $2
+}
 
-[ -z "$1" ] && echo "doasedit: doesn't has file to edit..." && exit 1
+[ $UID = 0 ] && ERR 'denied to run as root...' 1
 
-[ -n "$2" ] && echo "doasedit: only able edit one file..." && exit 1
+[ -z "$1" ] && ERR "doesn't has file to edit..." 1
 
-[ ! -f "$1" ] && echo "doasedit: $1 is a directory or don't exist..." && exit 1
+[ -n "$2" ] && ERR 'only able to edit one file...' 1
 
-[ ! -r "$1" ] && echo "doasedit: doesn't has permission to read $1..." && exit 1
+[ ! -f "$1" ] && ERR "$1 is a directory or doesn't exist..." 1
 
-[ -w "$1" ] && echo "doasedit: $1 doesn't need root access to write..." && exit 1
+[ ! -r "$1" ] && ERR "doesn't has permission to read $1..." 1
+
+[ -w "$1" ] && ERR "$1 doesn't need root access to write..." 1
 
 #-----------------------------------------------------------Prepare and Set variables
 
-# Create variables only if not already prefered by user
-TMPDIR="${TMPDIR:-/tmp}"
-EDITOR="${EDITOR:-vi}"
+# Make Random Variables Static
+TmpFile="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
-# Remove exist doasedit tmp file, incase it got left
-rm -f $TMPDIR/doasedit-* >/dev/null
-
-# Get random number using BASH builtin
-random="$RANDOM$RANDOM$RANDOM$RANDOM"
-
-# Make random variables static
-tmpfile="$TMPDIR/doasedit-$random"
+# Copy Original File to Tmp Directory
+\cp $1 $TmpFile
 
 #----------------------------------------------------------Start to edit the file
 
-# Copy original file to tmp directory
-cp $1 $tmpfile
-
 # Edit tmp file
-$EDITOR $tmpfile
+${EDITOR:-vi} $TmpFile
 
-# Don't do anything if file's content doesn't change
-cmp $1 $tmpfile -s && echo "doasedit: $1 doesn't change..." && rm -f $tmpfile && exit 0
+# Doesn't do Anything If File's Content Doesn't Change
+cmp $1 $TmpFile -s && rm -f $TmpFile && ERR "$1 doesn't change..." 0
 
-while true; do
+while :; do
 
-  # Ask user to create a backup, Yes by default
-  read -p "doasedit: Do you want to create a backup of '$1' [Y/n]: " input
-    case $input in
+	# Ask user to create a backup, Yes by default
+	read -p "doasedit: do you want to create a backup of $1 [Y/n]: "
 
-      [Yy][Ee][Ss]|[Yy]|'')
-        doas cp -b $tmpfile $1
-        # Break while loop only when user successfully type password
-        [ "$?" != 1 ] && echo "doasedit: Backup at '${1}~'..." && break ;;
+    case $REPLY in
 
-      [Nn][Oo]|[Nn])
-        doas cp $tmpfile $1
-        # Break while loop only when user successfully type password
-        [ "$?" != 1 ] && break ;;
+		[Yy][Ee][Ss]|[Yy]|'')
+			doas cp -b $TmpFile $1
 
-      *)
-        echo "doasedit: Invaild answer(s)..." ;;
+			# Break while loop only when user successfully type password
+			[ "$?" = 0 ] && printf "doasedit: backup at ${1}~...\n" && break ;;
+
+		[Nn][Oo]|[Nn])
+			doas cp $TmpFile $1
+
+			# Break while loop only when user successfully type password
+			[ "$?" = 0 ] && break ;;
+
+		*)
+			printf 'doasedit: invaild answer(s)...\n' ;;
     esac
+
 done
 
-rm -f $tmpfile
+rm -f $TmpFile
+
+unset ERR TmpFile Random
