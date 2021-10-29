@@ -4,7 +4,7 @@ ERR(){
 	printf '%s\n' "doasedit: $2" && exit "$1"
 }
 
-[ -z "$(type -t doas)" ] && ERR 1 'package `doas` required by `doasedit`...'
+[ -z `type -P doas` ] && ERR 1 'package `doas` required by `doasedit`...'
 
 FullPath="$(realpath $0)"; File="${FullPath%/*}/doasedit"
 

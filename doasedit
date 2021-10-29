@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-trap 'unset ERR TmpFile' EXIT SIGINT SIGKILL SIGTERM
+trap 'unset ERR CHECK TmpFile Readable' EXIT SIGINT SIGKILL SIGTERM
 
 #-----------------------------------------------------------Check some errors
 
@@ -8,17 +8,42 @@ ERR(){
 	printf '%s\n' "doasedit: $2" && exit $1
 }
 
-[ $UID = 0 ] && ERR 1 'denied to run as root...'
+[ $UID = 0 ] && ERR 2 'denied to run as root...'
 
-[ -z "$1" ] && ERR 1 "doesn't has file to edit..."
+[ -z "$1" ] && ERR 2 "doesn't has file to edit..."
 
-[ -n "$2" ] && ERR 1 'only able to edit one file...'
+[ -n "$2" ] && ERR 2 'only able to edit one file...'
 
-[ ! -f "$1" ] && ERR 1 "$1 is a directory or doesn't exist..."
+[ ! -f "$1" ] && ERR 2 "$1 is a directory or doesn't exist..."
 
-[ ! -r "$1" ] && ERR 1 "doesn't has permission to read $1..."
+[ -O "$1" ] && ERR 2 "$1 doesn't need root access..."
 
-[ -w "$1" -o -O "$1" ] && ERR 1 "$1 doesn't need root access..."
+if [ ! -r "$1" ]; then
+
+	while read; do
+		printf '%s\n' "$REPLY"
+	done <<-EOF
+
+		Doesn't has permission to read $1
+		If you continue will need to type your password 3 times
+		Unless you have \`persist\` option in your /etc/doas.conf
+
+	EOF
+
+	read -p 'Do you want to continue? [y/N]: '
+	case "$REPLY" in
+		[Nn][Oo]|[Nn]|'')
+			exit 1 ;;
+		[Yy][Ee][Ss]|[Yy])
+			Readable=0 ;;
+		*)
+			ERR 2 "unknown answer(s) $1..."
+	esac
+else
+	Readable=1
+fi
+
+[ -w "$1" ] && ERR 2 "$1 doesn't need root access..."
 
 #-----------------------------------------------------------Prepare and Set variables
 
@@ -26,7 +51,9 @@ ERR(){
 TmpFile="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-\cp $1 $TmpFile
+[ "$Readable" = 1 ] && cp $1 $TmpFile || doas -- cp $1 $TmpFile
+
+[ "$Readable" = 0 ] && doas -- chown $USER $TmpFile
 
 #----------------------------------------------------------Start to edit the file
 
@@ -44,13 +71,13 @@ while :; do
     case $REPLY in
 
 		[Yy][Ee][Ss]|[Yy]|'')
-			doas cp -b $TmpFile $1
+			doas -- cp -b $TmpFile $1
 
 			# Break while loop only when user successfully type password
 			[ "$?" = 0 ] && printf "doasedit: backup at ${1}~...\n" && break ;;
 
 		[Nn][Oo]|[Nn])
-			doas cp $TmpFile $1
+			doas -- cp $TmpFile $1
 
 			# Break while loop only when user successfully type password
 			[ "$?" = 0 ] && break ;;
