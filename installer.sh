@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ERR(){
 	printf '%s\n' "doasedit: $2" && exit "$1"
