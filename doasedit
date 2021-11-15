@@ -8,13 +8,13 @@ ERR(){
 	printf '%s\n' "doasedit: $2" && exit $1
 }
 
-[ $UID = 0 ] && ERR 2 'denied to run as root...'
+[ $UID -eq 0 ] && ERR 2 'denied to run as root...'
 
 [ -z "$1" ] && ERR 2 "doesn't has file to edit..."
 
 [ -n "$2" ] && ERR 2 'only able to edit one file...'
 
-[ ! -f "$1" ] && ERR 2 "$1 is a directory or doesn't exist..."
+[ -f "$1" ] || ERR 2 "$1 is a directory or doesn't exists..."
 
 [ -O "$1" ] && ERR 2 "$1 doesn't need root access..."
 
@@ -24,9 +24,9 @@ if [ ! -r "$1" ]; then
 		printf '%s\n' "$REPLY"
 	done <<-EOF
 
-		Doesn't has permission to read $1
-		If you continue will need to type your password 3 times
-		Unless you have \`persist\` option in your /etc/doas.conf
+		doasedit() doesn't has permission to read $1
+		if continue you will need to type your password 3 times
+		unless you have \`persist\` option in your /etc/doas.conf
 
 	EOF
 
@@ -34,8 +34,10 @@ if [ ! -r "$1" ]; then
 	case "$REPLY" in
 		[Nn][Oo]|[Nn]|'')
 			exit 1 ;;
+
 		[Yy][Ee][Ss]|[Yy])
 			Readable=0 ;;
+
 		*)
 			ERR 2 "unknown answer(s) $1..."
 	esac
@@ -51,36 +53,39 @@ fi
 TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-[ "$Readable" = 1 ] && cp $1 $TMPFILE || doas -- cp $1 $TMPFILE
+[ "$Readable" -eq 1 ] && cp $1 $TMPFILE || doas -- cp $1 $TMPFILE
 
-[ "$Readable" = 0 ] && doas -- chown $USER $TMPFILE
+[ "$Readable" -eq 0 ] && doas -- chown $USER $TMPFILE
 
 #----------------------------------------------------------Start to edit the file
 
 # Edit tmp file
-${DOAS_EDITOR:-vi} $TMPFILE || ERR 1 '$DOAS_EDITOR is set to `vi`...'
+${DOAS_EDITOR:-vi} $TMPFILE || ERR 1 '$DOAS_EDITOR is set to something that unusable...'
 
 # Doesn't do Anything If File's Content Doesn't Change
-cmp $1 $TMPFILE -s && rm -f $TMPFILE && ERR 0 "$1 doesn't change..."
+cmp -s $1 $TMPFILE && rm -f $TMPFILE &&
+	ERR 0 "$1 doesn't change..."
 
 while :; do
 
-	# Ask user to create a backup, Yes by default
+	# Ask user to create a backup, yes by default
 	read -p "doasedit: do you want to create a backup of $1 [Y/n]: "
 
-    case $REPLY in
+    case "$REPLY" in
 
 		[Yy][Ee][Ss]|[Yy]|'')
 			doas -- cp -b $TMPFILE $1
 
 			# Break while loop only when user successfully type password
-			[ "$?" = 0 ] && printf "doasedit: backup at ${1}~...\n" && break ;;
+			[ $? -eq 0 ] &&
+				printf "doasedit: backup at ${1}~...\n" &&
+				break ;;
 
 		[Nn][Oo]|[Nn])
 			doas -- cp $TMPFILE $1
 
 			# Break while loop only when user successfully type password
-			[ "$?" = 0 ] && break ;;
+			[ $? -eq 0 ] && break ;;
 
 		*)
 			printf 'doasedit: invaild answer(s)...\n' ;;
