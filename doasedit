@@ -18,8 +18,9 @@ ERR(){
 
 [ -O "$1" ] && ERR 2 "$1 doesn't need root access..."
 
-if [ ! -r "$1" ]; then
-
+if [ -r "$1" ]; then
+	Readable=1
+else
 	while read; do
 		printf '%s\n' "$REPLY"
 	done <<-EOF
@@ -39,10 +40,8 @@ if [ ! -r "$1" ]; then
 			Readable=0 ;;
 
 		*)
-			ERR 2 "unknown answer(s) $1..."
+			ERR 2 "unknown answer(s) $1..." ;;
 	esac
-else
-	Readable=1
 fi
 
 [ -w "$1" ] && ERR 2 "$1 doesn't need root access..."
@@ -60,7 +59,8 @@ TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 #----------------------------------------------------------Start to edit the file
 
 # Edit tmp file
-${DOAS_EDITOR:-vi} $TMPFILE || ERR 1 '$DOAS_EDITOR is set to something that unusable...'
+${DOAS_EDITOR:-vi} $TMPFILE ||
+	ERR 1 '$DOAS_EDITOR is set to something that unusable...'
 
 # Doesn't do Anything If File's Content Doesn't Change
 cmp -s $1 $TMPFILE && rm -f $TMPFILE &&
@@ -78,7 +78,7 @@ while :; do
 
 			# Break while loop only when user successfully type password
 			[ $? -eq 0 ] &&
-				printf "doasedit: backup at ${1}~...\n" &&
+				printf '%s\n' "doasedit: backup at ${1}~..." &&
 				break ;;
 
 		[Nn][Oo]|[Nn])

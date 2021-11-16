@@ -4,13 +4,16 @@ ERR(){
 	printf '%s\n' "doasedit: $2" && exit "$1"
 }
 
-[ -z `type -P doas` ] && ERR 1 'package `doas` required by `doasedit`...'
+type -P doas &>/dev/null ||
+	ERR 1 'package `doas` required by `doasedit`...'
 
-FullPath="$(realpath $0)"; File="${FullPath%/*}/doasedit"
+FullPath=$(realpath $0)
 
-[ ! -f "$File" -o ! -r "$File" ] && ERR 1 "can't access $File"
+File="${FullPath%/*}/doasedit"
 
-[ ! -d "$HOME/.local/bin" ] && mkdir -p $HOME/.local/bin
+[ -f "$File" -o -r "$File" ] || ERR 1 "can't access $File"
+
+[ -d "$HOME/.local/bin" ] || mkdir -p $HOME/.local/bin
 
 cp $File $HOME/.local/bin/
 
