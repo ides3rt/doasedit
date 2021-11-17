@@ -52,9 +52,9 @@ fi
 TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-[ "$Readable" -eq 1 ] && cp $1 $TMPFILE || doas -- cp $1 $TMPFILE
-
-[ "$Readable" -eq 0 ] && doas -- chown $USER $TMPFILE
+[ "$Readable" -eq 1 ] && cp $1 $TMPFILE ||
+	{ while :; do doas -- cp $1 $TMPFILE; [ $? -eq 0 ] && break; done
+	while :; do doas -- chown $USER $TMPFILE; [ $? -eq 0 ] && break; done ;}
 
 #----------------------------------------------------------Start to edit the file
 

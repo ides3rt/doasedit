@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 
 ERR(){
-	printf '%s\n' "doasedit: $2" && exit "$1"
+	printf '%s\n' "ERR: $2" && exit "$1"
 }
 
 type -P doas &>/dev/null ||
-	ERR 1 'package `doas` required by `doasedit`...'
+	ERR 1 'package doas() required by doasedit()...'
 
-FullPath=$(realpath $0)
+File=$(realpath $0)
 
-File="${FullPath%/*}/doasedit"
+File="${File%/*}/doasedit"
 
 [ -f "$File" -o -r "$File" ] || ERR 1 "can't access $File"
 
-[ -d "$HOME/.local/bin" ] || mkdir -p $HOME/.local/bin
+Dir="$HOME/.local/bin"
 
-cp $File $HOME/.local/bin/
+[ -d "$Dir" ] || mkdir -p -- $Dir
 
-chmod u+x $HOME/.local/bin/doasedit
+cp -- $File $Dir/
 
-unset ERR FullPath File
+chmod u+x -- $Dir/doasedit
+
+printf '%s\n' "Installed. Now add \`$Dir\` to your PATH..."
+
+unset ERR File Dir
