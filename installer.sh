@@ -9,7 +9,7 @@ type -P doas &>/dev/null ||
 
 File=$(realpath $0)
 
-File="${File%/*}/doasedit"
+File="${File%/*}/src/doasedit"
 
 [ -f "$File" -o -r "$File" ] || ERR 1 "can't access $File"
 
