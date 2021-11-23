@@ -8,7 +8,8 @@ $ mkdir -p $HOME/.local/bin
 $ mv doasedit/src/doasedit $HOME/.local/bin/
 $ chmod u+x $HOME/.local/bin/doasedit
 ```
-Using installer script:
+Using installer script:\
+* Use doas(1) to install doasedit() at /usr/local/bin
 ```
 $ git clone https://github.com/ides3rt/doasedit.git
 $ chmod u+x doasedit/installer.sh
