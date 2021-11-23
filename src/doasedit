@@ -7,15 +7,13 @@ ERR(){
 	[ $1 -gt 0 ] && exit $1
 }
 
-[ $UID -eq 0 ] && ERR 2 'denied to run as root...'
+[ `id -u` -eq 0 ] && ERR 2 'denied to run as root...'
 
-[ -z "$1" ] && ERR 2 "doesn't has file to edit..."
-
-[ -n "$2" ] && ERR 2 'only able to edit one file...'
+[ -z "$1" -o -n "$2" ] && ERR 2 "doesn't specify file..."
 
 [ -f "$1" ] || ERR 2 "$1 is a directory or doesn't exists..."
 
-[ -O "$1" ] && ERR 2 "$1 doesn't need root access..."
+[ -O "$1" -o -w "$1" ] && ERR 2 "$1 doesn't need root access..."
 
 if [ -r "$1" ]; then
 	Readable=1
@@ -43,8 +41,6 @@ else
 	esac
 fi
 
-[ -w "$1" ] && ERR 2 "$1 doesn't need root access..."
-
 #-----------------------------------------------------------Prepare and Set variables
 
 # Make Random Variables Static
@@ -52,8 +48,13 @@ TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
 [ "$Readable" -eq 1 ] && cp $1 $TMPFILE ||
-	{ while :; do doas -- cp $1 $TMPFILE; [ $? -eq 0 ] && break; done
-	while :; do doas -- chown $USER $TMPFILE; [ $? -eq 0 ] && break; done ;}
+	{ while :; do doas cp $1 $TMPFILE && break; done
+	while :; do doas chown $USER $TMPFILE && break; done ;}
+
+# Remove tmp file when exit
+trap 'rm -f $TMPFILE' EXIT
+
+[ -w "$TMPFILE" ] || ERR 2 "$1 is write protected, cancelled..."
 
 #----------------------------------------------------------Start to edit the file
 
@@ -61,35 +62,23 @@ TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 ${DOAS_EDITOR:-vi} $TMPFILE ||
 	ERR 2 '$DOAS_EDITOR is set to something that unusable...'
 
-# Doesn't do Anything If File's Content Doesn't Change
-cmp -s $1 $TMPFILE && rm -f $TMPFILE &&
-	ERR 1 "$1 doesn't change..."
+# Don't do anything if file's content doesn't change
+cmp -s $1 $TMPFILE && ERR 1 "$1 doesn't change..."
 
 while :; do
-
 	# Ask user to create a backup, yes by default
 	read -p "doasedit: do you want to create a backup of $1 [Y/n]: "
 
     case "$REPLY" in
-
 		[Yy][Ee][Ss]|[Yy]|'')
-			doas -- cp -b $TMPFILE $1
-
 			# Break while loop only when user successfully type password
-			[ $? -eq 0 ] &&
-				printf '%s\n' "doasedit: backup at ${1}~..." &&
-				break ;;
+			doas cp -b $TMPFILE $1 && break ;;
 
 		[Nn][Oo]|[Nn])
-			doas -- cp $TMPFILE $1
-
 			# Break while loop only when user successfully type password
-			[ $? -eq 0 ] && break ;;
+			doas cp $TMPFILE $1 && break ;;
 
 		*)
-			printf 'doasedit: invaild answer(s)...\n' 1>&2 ;;
+			ERR 0 'invaild answer(s)...' ;;
     esac
-
 done
-
-rm -f $TMPFILE
