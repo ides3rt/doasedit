@@ -7,7 +7,7 @@ ERR(){
 	[ $1 -gt 0 ] && exit $1
 }
 
-[ `id -u` -eq 0 ] && ERR 2 'denied to run as root...'
+(( $UID == 0 )) && ERR 2 'denied to run as root...'
 
 [ -z "$1" -o -n "$2" ] && ERR 2 "doesn't specify file..."
 
@@ -43,7 +43,7 @@ fi
 
 #-----------------------------------------------------------Prepare and Set variables
 
-# Make Random Variables Static
+# Make random variables static
 TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
@@ -54,7 +54,7 @@ TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 # Remove tmp file when exit
 trap 'rm -f $TMPFILE' EXIT
 
-[ -w "$TMPFILE" ] || ERR 2 "$1 is write protected, cancelled..."
+[ -w "$TMPFILE" ] || ERR 2 "$1 is write protected, aborted..."
 
 #----------------------------------------------------------Start to edit the file
 
@@ -79,6 +79,6 @@ while :; do
 			doas cp $TMPFILE $1 && break ;;
 
 		*)
-			ERR 0 'invaild answer(s)...' ;;
+			ERR 0 'Invaild answer(s)...' ;;
     esac
 done
