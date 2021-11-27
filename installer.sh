@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-ERR(){
-	printf '%s\n' "ERR: $2" && exit "$1"
+ERR() {
+	printf '%s\n' "ERR: $2" 1>&2
+	exit $1
 }
 
 type -P doas &>/dev/null ||
@@ -11,15 +12,15 @@ File=$(realpath $0)
 
 File="${File%/*}/src/doasedit"
 
-[ -f "$File" -o -r "$File" ] || ERR 1 "can't access $File"
+[[ -f "$File" || -r "$File" ]] || ERR 1 "can't access $File"
 
-if [ $(id -u) -eq 0 ]; then
+if ((UID == 0)); then
 	Dir=/usr/local/bin
 	doas cp $File $Dir/
 	chmod 755 $Dir/doasedit
 else
 	Dir="$HOME/.local/bin"
-	[ -d "$Dir" ] || mkdir -p $Dir
+	[[ -d "$Dir" ]] || mkdir -p $Dir
 	cp $File $Dir/
 	chmod 700 $Dir/doasedit
 if

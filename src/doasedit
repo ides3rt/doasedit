@@ -4,18 +4,18 @@
 
 ERR(){
 	printf '%s\n' "doasedit: $2" 1>&2
-	[ $1 -gt 0 ] && exit $1
+	(($1 > 0)) && exit $1
 }
 
-(( $UID == 0 )) && ERR 2 'denied to run as root...'
+((UID == 0)) && ERR 2 'denied to run as root...'
 
-[ -z "$1" -o -n "$2" ] && ERR 2 "doesn't specify file..."
+[[ -z "$1" || -n "$2" ]] && ERR 2 "doesn't specify file..."
 
-[ -f "$1" ] || ERR 2 "$1 is a directory or doesn't exists..."
+[[ -f "$1" ]] || ERR 2 "$1 is a directory or doesn't exists..."
 
-[ -O "$1" -o -w "$1" ] && ERR 2 "$1 doesn't need root access..."
+[[ -O "$1" || -w "$1" ]] && ERR 2 "$1 doesn't need root access..."
 
-if [ -r "$1" ]; then
+if [[ -r "$1" ]]; then
 	Readable=1
 else
 	while read; do
@@ -47,14 +47,14 @@ fi
 TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-[ "$Readable" -eq 1 ] && cp $1 $TMPFILE ||
+((Readable == 1)) && cp $1 $TMPFILE ||
 	{ while :; do doas cp $1 $TMPFILE && break; done
 	while :; do doas chown $USER $TMPFILE && break; done ;}
 
 # Remove tmp file when exit
 trap 'rm -f $TMPFILE' EXIT
 
-[ -w "$TMPFILE" ] || ERR 2 "$1 is write protected, aborted..."
+[[ -w "$TMPFILE" ]] || ERR 2 "$1 is write protected, aborted..."
 
 #----------------------------------------------------------Start to edit the file
 
@@ -66,19 +66,6 @@ ${DOAS_EDITOR:-vi} $TMPFILE ||
 cmp -s $1 $TMPFILE && ERR 1 "$1 doesn't change..."
 
 while :; do
-	# Ask user to create a backup, yes by default
-	read -p "doasedit: do you want to create a backup of $1 [Y/n]: "
-
-    case "$REPLY" in
-		[Yy][Ee][Ss]|[Yy]|'')
-			# Break while loop only when user successfully type password
-			doas cp -b $TMPFILE $1 && break ;;
-
-		[Nn][Oo]|[Nn])
-			# Break while loop only when user successfully type password
-			doas cp $TMPFILE $1 && break ;;
-
-		*)
-			ERR 0 'Invaild answer(s)...' ;;
-    esac
+	# Break while loop only when user successfully type password
+	doas cp $TMPFILE $1 && break
 done
