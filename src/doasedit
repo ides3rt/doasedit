@@ -2,7 +2,7 @@
 
 #-----------------------------------------------------------Check some errors
 
-ERR(){
+function ERR {
 	printf '%s\n' "doasedit: $2" 1>&2
 	(($1 > 0)) && exit $1
 }
