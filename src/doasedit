@@ -7,7 +7,7 @@ function ERR {
 	(($1 > 0)) && exit $1
 }
 
-((UID == 0)) && ERR 2 'denied to run as root...'
+((UID)) || ERR 2 'denied to run as root...'
 
 [[ -z "$1" || -n "$2" ]] && ERR 2 "doesn't specify file..."
 
@@ -44,10 +44,10 @@ fi
 #-----------------------------------------------------------Prepare and Set variables
 
 # Make random variables static
-TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
+TMPFILE="${XDG_RUNTIME_DIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-((Readable == 1)) && cp $1 $TMPFILE ||
+((Readable)) && cp $1 $TMPFILE ||
 	{ while :; do doas cp $1 $TMPFILE && break; done
 	while :; do doas chown $USER $TMPFILE && break; done ;}
 
