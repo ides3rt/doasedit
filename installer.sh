@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-ERR() {
+function ERR {
 	printf '%s\n' "ERR: $2" 1>&2
-	exit $1
+	(($1 > 0)) && exit $1
 }
 
 type -P doas &>/dev/null ||
@@ -14,15 +14,15 @@ File="${File%/*}/src/doasedit"
 
 [[ -f "$File" || -r "$File" ]] || ERR 1 "can't access $File"
 
-if ((UID == 0)); then
-	Dir=/usr/local/bin
-	doas cp $File $Dir/
-	chmod 755 $Dir/doasedit
-else
+if ((UID)); then
 	Dir="$HOME/.local/bin"
 	[[ -d "$Dir" ]] || mkdir -p $Dir
 	cp $File $Dir/
 	chmod 700 $Dir/doasedit
+else
+	Dir=/usr/local/bin
+	cp $File $Dir/
+	chmod 755 $Dir/doasedit
 if
 
 printf '%s\n' "Installed. Now add \`$Dir\` to your PATH..."
