@@ -2,14 +2,14 @@
 
 #-----------------------------------------------------------Check some errors
 
-function ERR {
+ERR() {
 	printf '%s\n' "doasedit: $2" 1>&2
 	(($1 > 0)) && exit $1
 }
 
 ((UID)) || ERR 2 'denied to run as root...'
 
-[[ -z "$1" || -n "$2" ]] && ERR 2 "doesn't specify file..."
+(($# == 1)) || ERR 2 "doesn't specify file..."
 
 [[ -f "$1" ]] || ERR 2 "$1 is a directory or doesn't exists..."
 

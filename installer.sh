@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-function ERR {
+trap 'sync' EXIT
+
+ERR() {
 	printf '%s\n' "ERR: $2" 1>&2
 	(($1 > 0)) && exit $1
 }
