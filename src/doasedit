@@ -1,35 +1,35 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 #-----------------------------------------------------------Check some errors
 
 ERR() {
 	printf '%s\n' "doasedit: $2" 1>&2
-	(($1 > 0)) && exit $1
+	test $1 -gt 0 && exit $1
 }
 
-((UID)) || ERR 2 'denied to run as root...'
+test `id -u` -eq 0 && ERR 2 'denied to run as root...'
 
-(($# == 1)) || ERR 2 "doesn't specify file..."
+test $# -ne 1 && ERR 2 "doesn't specify file..."
 
-[[ -f "$1" ]] || ERR 2 "$1 is a directory or doesn't exists..."
+test -f "$1" || ERR 2 "$1 is a directory or doesn't exists..."
 
-[[ -O "$1" || -w "$1" ]] && ERR 2 "$1 doesn't need root access..."
+test -O "$1" -o -w "$1" && ERR 2 "$1 doesn't need root access..."
 
-if [[ -r "$1" ]]; then
+if test -r "$1"; then
 	Readable=1
 else
-	while read; do
-		printf '%s\n' "$REPLY"
+	while read -r Curline; do
+		printf '%b\n' "$Curline"
 	done <<-EOF
 
-		doasedit() doesn't has permission to read $1
-		if continue you will need to type your password 3 times
-		unless you have \`persist\` option in your /etc/doas.conf
+		\rdoasedit() doesn't has permission to read \`$1\`
+		\rif continue you will need to type your password 3 times
+		\runless you have \`persist\` option in your /etc/doas.conf
 
 	EOF
 
-	read -p 'Do you want to continue? [y/N]: '
-	case "$REPLY" in
+	read -p 'Do you want to continue? [y/N]: ' Answer
+	case "$Answer" in
 		[Nn][Oo]|[Nn]|'')
 			exit 1 ;;
 
@@ -47,14 +47,14 @@ fi
 TMPFILE="${XDG_RUNTIME_DIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy Original File to Tmp Directory
-((Readable)) && cp $1 $TMPFILE ||
+test $Readable -eq 1 && cp $1 $TMPFILE ||
 	{ while :; do doas cp $1 $TMPFILE && break; done
 	while :; do doas chown $USER $TMPFILE && break; done ;}
 
 # Remove tmp file when exit
 trap 'rm -f $TMPFILE' EXIT
 
-[[ -w "$TMPFILE" ]] || ERR 2 "$1 is write protected, aborted..."
+test -w "$TMPFILE" || ERR 2 "$1 is write protected, aborted..."
 
 #----------------------------------------------------------Start to edit the file
 
