@@ -44,9 +44,9 @@ fi
 #-----------------------------------------------------------Prepare and Set variables
 
 # Make random variables static
-TMPFILE="${XDG_RUNTIME_DIR:-/tmp}/doasedit-$SRANDOM"
+TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
-# Copy Original File to Tmp Directory
+# Copy original file to tmp directory
 test $Readable -eq 1 && cp $1 $TMPFILE ||
 	{ while :; do doas cp $1 $TMPFILE && break; done
 	while :; do doas chown $USER $TMPFILE && break; done ;}
