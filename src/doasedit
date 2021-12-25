@@ -48,7 +48,7 @@ TMPFILE="${TMPDIR:-/tmp}/doasedit-$SRANDOM"
 
 # Copy original file to temp directory
 if test $Readable -eq 1; then
-	cp $1 $TMPFILE
+	cp "$1" "$TMPFILE"
 else
 	while :; do doas cp "$1" "$TMPFILE" && break; done
 	while :; do doas chown "$USER" "$TMPFILE" && break; done
