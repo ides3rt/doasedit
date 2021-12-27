@@ -10,19 +10,19 @@ Err() {
 type -P doas &>/dev/null ||
 	Err 1 'package doas(1) required by doasedit()...'
 
-File=$(realpath $0) File="${File%/*}/src/doasedit"
+File=$(realpath "$0") File="${File%/*}"/src/doasedit
 
-[[ -f "$File" || -r "$File" ]] || Err 1 "can't access '$File'"
+[[ -f $File || -r $File ]] || Err 1 "can't access '$File'"
 
 if ((UID)); then
-	Dir="$HOME/.local/bin"
-	[[ -d "$Dir" ]] || mkdir -p $Dir
-	cp "$File" $Dir/
-	chmod 700 $Dir/doasedit
+	Dir="$HOME"/.local/bin
+	[[ -d "$Dir" ]] || mkdir -p "$Dir"
+	cp "$File" "$Dir"/
+	chmod 700 "$Dir"/doasedit
 else
 	Dir=/usr/local/bin
-	cp "$File" $Dir/
-	chmod 755 $Dir/doasedit
+	cp "$File" "$Dir"/
+	chmod 755 "$Dir"/doasedit
 if
 
 printf '%s\n' "Installed. Now add '$Dir' to \$PATH..."
