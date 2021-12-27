@@ -7,7 +7,7 @@ Err() {
 	test $1 -gt 0 && exit $1
 }
 
-test `id -u` -eq 0 && Err 2 'denied to run as root...'
+test "$USER" = root && Err 2 'denied to run as root...'
 
 test $# -ne 1 && Err 2 "no file was specify..."
 
@@ -62,11 +62,9 @@ test -w "$TMPFILE" || Err 2 "'$1' is write protected, aborted..."
 #----------------------------------------------------------Start to edit the file
 
 # Edit temp file
-${DOAS_EDITOR:-vi} "$TMPFILE" ||
-	Err 2 '$DOAS_EDITOR is set to something that unusable...'
-
-# Don't do anything if file's content doesn't change
-cmp -s "$1" "$TMPFILE" && Err 1 "'$1' doesn't change..."
+if ! ${DOAS_EDITOR:-vi} "$TMPFILE"; then
+	Err 2 "unable to use \`${DOAS_EDITOR:-vi}\` as a \$DOAS_EDITOR..."
+fi
 
 while :; do
 	# Break while loop only when user successfully type password
