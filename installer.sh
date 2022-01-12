@@ -2,27 +2,32 @@
 
 trap 'sync' EXIT
 
+Program="${0##*/}"
+
 Err() {
-	printf '%s\n' "Err: $2" 1>&2
+	printf '%s\n' "$Program: $2" 1>&2
 	(( $1 > 0 )) && exit $1
 }
 
+(( $# > 0 )) && Err 1 "don't accept arguments..."
+
 type -P doas &>/dev/null ||
-	Err 1 'package doas(1) required by doasedit()...'
+	Err 1 'package doas(1) required by doasedit(1)...'
 
-File=$(realpath "$0") File="${File%/*}"/src/doasedit
+File="${0%/*}"/src/doasedit
 
-[[ -f $File || -r $File ]] || Err 1 "can't access '$File'"
+[[ -f $File || -r $File ]] || Err 1 "can't access '$File'..."
 
 if ((UID)); then
 	Dir="$HOME"/.local/bin
-	[[ -d "$Dir" ]] || mkdir -p "$Dir"
-	cp "$File" "$Dir"/
-	chmod 700 "$Dir"/doasedit
+	Perms=700
 else
 	Dir=/usr/local/bin
-	cp "$File" "$Dir"/
-	chmod 755 "$Dir"/doasedit
+	Perms=755
 if
+
+[[ -d "$Dir" ]] || mkdir -p "$Dir"
+cp "$File" "$Dir"/
+chmod "$Perms" "$Dir"/doasedit
 
 printf '%s\n' "Installed. Now add '$Dir' to \$PATH..."

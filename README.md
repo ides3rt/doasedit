@@ -2,19 +2,19 @@
 
 ## Installation
 Manual installation:\
-**Note:** Install at `/usr/local/bin` for systemwide.
+**Note:** Install at `/usr/local/bin` for system wide.
 ```
 $ git clone https://github.com/ides3rt/doasedit.git
 $ mkdir -p "$HOME"/.local/bin
 $ mv doasedit/src/doasedit "$HOME"/.local/bin/
 ```
 Using installer script:\
-**Note:** For systemwide install, run `installer.sh` as root.
+**Note:** For system wide install, run `installer.sh` as root.
 ```
 $ git clone https://github.com/ides3rt/doasedit.git
 $ doasedit/installer.sh
 ```
-Remove doasedit():
+Remove doasedit(1):
 ```
 $ rm "$HOME"/.local/bin/doasedit
 ```
