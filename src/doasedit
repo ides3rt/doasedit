@@ -1,74 +1,85 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-#-------------------------------------------------------------Check some errors
+#-----------------------------------------------------------Check some Errors
 
 Program="${0##*/}"
 
 Err() {
 	printf '%s\n' "$Program: $2" 1>&2
-	test $1 -gt 0 && exit $1
+	(( $1 > 0 )) && exit $1
 }
 
-test "$USER" = root && Err 2 'denied to run as root...'
+if ! type -P doas &>/dev/null; then
+	Err 1 'dependency, `doas`, not met...'
+fi
 
-test $# -ne 1 && Err 2 "no file was specify..."
+((UID)) || Err 2 'denied to run as root...'
 
-test -f "$1" || Err 2 "'$1' is a directory or doesn't exists..."
+(( $# == 1 )) || Err 2 'no file was given...'
 
-test -O "$1" -o -w "$1" && Err 2 "'$1' doesn't need root access..."
+[[ -f $1 ]] || Err 2 "$1: not a file..."
 
-if test -r "$1"; then
+[[ -O $1 || -w $1 ]] && Err 2 "needn't root access..."
+
+if [[ -r $1 ]]; then
 	Readable=1
 else
-	while read -r Curline; do
-		printf '%b\n' "$Curline"
-	done <<-EOF
+	read -d '' <<-EOF
 
-		\r$Program(1) doesn't has permission to read '$1'
-		\rif continue, you'll need to type password 3 times
-		\runless you have 'persist' option in '/etc/doas.conf'
+		$Program(1) doesn't has permission to read '$1'.
+		If continue, you'll need to type password 3 times.
+		Unless you've 'persist' option in doas.conf(5).
 
 	EOF
 
-	read -p 'Do you want to continue? [y/N]: ' Answer
-	case "$Answer" in
-		[Nn][Oo]|[Nn]|'')
+	printf '%s' "$REPLY"
+
+	read -p 'Do you want to continue? [y/N]: '
+	case "${REPLY,,}" in
+		no|n|'')
 			exit 1 ;;
 
-		[Yy][Ee][Ss]|[Yy])
+		yes|y)
 			Readable=0 ;;
 
 		*)
-			Err 2 "unknown answer(s) '$1'..." ;;
+			Err 2 "$REPLY: invaild reply..." ;;
 	esac
 fi
 
-#-----------------------------------------------------Prepare and set variables
+#-----------------------------------------------------------Prepare and Set Variables
 
-# Make random variables static.
-TMPFILE="${TMPDIR:-/tmp}/doasedit-$(( $$ * 7 ))$(( $$ * 3 ))"
+# Make random variable static.
+TMPFILE="${TMPDIR:-/tmp}/doasedit-$(( $SRANDOM * $$ ))"
 
 # Copy original file to temp directory.
-if test $Readable -eq 1; then
-	cp "$1" "$TMPFILE"
+if (( Readable == 1 )); then
+	cp -- "$1" "$TMPFILE"
 else
-	while :; do doas cp "$1" "$TMPFILE" && break; done
-	while :; do doas chown "$USER" "$TMPFILE" && break; done
+	while :; do
+		doas -- cp -- "$1" "$TMPFILE" && break
+	done
+
+	while :; do
+		doas -- chown -- $UID "$TMPFILE" && break
+	done
 fi
 
-# Remove temp file when exit.
-trap 'rm -f "$TMPFILE"' EXIT
+# Remove the temp file when exit.
+trap "rm -f -- $TMPFILE" EXIT
 
-test -w "$TMPFILE" || Err 2 "'$1' is write protected, aborted..."
+[[ -w $TMPFILE ]] || Err 1 "$1: is write protected, aborted..."
 
-#--------------------------------------------------------Start to edit the file
+#----------------------------------------------------------Start to Edit the File
 
-# Edit temp file.
-if ! ${DOAS_EDITOR:-vi} "$TMPFILE"; then
-	Err 2 "unable to use \`${DOAS_EDITOR:-vi}\` as a \$DOAS_EDITOR..."
+EDITOR="${EDITOR:-vi}"
+
+# Edit the temp file.
+if ! $EDITOR "$TMPFILE"; then
+	Err 1 "unable to use \`$EDITOR\` as an editor..."
 fi
 
 while :; do
 	# Break while loop only when user successfully type password.
-	doas cp "$TMPFILE" "$1" && break
+	doas -- cp -- "$TMPFILE" "$1" && break
 done
