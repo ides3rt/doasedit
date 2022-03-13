@@ -35,7 +35,7 @@ else
 	printf '%s' "$REPLY"
 
 	read -p 'Do you want to continue? [y/N]: '
-	case "${REPLY,,}" in
+	case ${REPLY,,} in
 		no|n|'')
 			exit 1 ;;
 
