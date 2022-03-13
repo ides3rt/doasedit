@@ -9,10 +9,11 @@ Err() {
 	(( $1 > 0 )) && exit $1
 }
 
-(( $# > 0 )) && Err 1 "don't accept arguments..."
+(( $# > 0 )) && Err 2 "needn't argument...'"
 
-type -P doas &>/dev/null ||
-	Err 1 'package doas(1) required by doasedit(1)...'
+if ! type -P doas &>/dev/null; then
+	Err 1 'dependency, `doas`, not met...'
+fi
 
 File="${0%/*}"/src/doasedit
 
@@ -26,8 +27,8 @@ else
 	Perms=755
 if
 
-[[ -d "$Dir" ]] || mkdir -p "$Dir"
-cp "$File" "$Dir"/
+[[ -d $Dir ]] || mkdir -p "$Dir"
+cp -- "$File" "$Dir"
 chmod "$Perms" "$Dir"/doasedit
 
-printf '%s\n' "Installed. Now add '$Dir' to \$PATH..."
+printf '%s\n' "Installed. Now, add '$Dir' to \$PATH..."
