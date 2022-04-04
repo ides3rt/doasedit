@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-#-----------------------------------------------------------Check Some Errors
+readonly progrm=${0##*/}
 
-progrm="${0##*/}"
+eprintf() { printf "$@" 1>&2; }
 
 panic() {
-	printf '%s\n' "$progrm: $2" 1>&2
-	(( $1 > 0 )) && exit $1
+	eprintf '%s\n' "$progrm: $2"
+	(( $1 )) && exit $1
 }
 
 if ! type -P doas &>/dev/null; then
@@ -15,71 +15,36 @@ fi
 
 ((UID)) || panic 1 'denied to run as root...'
 
-(( $# == 1 )) || panic 1 'no file was given...'
+(( $# == 1 )) || panic 1 'no files were given...'
 
 [[ -f $1 ]] || panic 1 "$1: not a file..."
 
 [[ -O $1 || -w $1 ]] && panic 1 "needn't root access..."
 
+readonly temp_file=${TMPDIR:-/tmp}/doasedit-$SRANDOM
+
 if [[ -r $1 ]]; then
-	readable=true
-else
-	read -d '' <<-EOF
-
-		$progrm(1) doesn't has permission to read '$1'.
-		If continue, you'll need to type password 3 times.
-		Unless you've 'persist' option in doas.conf(5).
-
-	EOF
-
-	printf '%s' "$REPLY"
-
-	read -p 'Do you want to continue? [y/N]: '
-	case ${REPLY,,} in
-		no|n|'')
-			exit 1 ;;
-
-		yes|y)
-			unset -v readable ;;
-
-		*)
-			panic 1 "$REPLY: invaild reply..." ;;
-	esac
-fi
-
-#-----------------------------------------------------------Prepare and Set Variables
-
-# Make random variable static.
-temp=${TMPDIR:-/tmp}/doasedit-$SRANDOM
-
-# Copy original file to temp directory.
-if [[ $readable == true ]]; then
-	cp -- "$1" "$temp"
+	cp -a -- "$1" "$temp_file"
 else
 	while :; do
-		doas -- cp -- "$1" "$temp" && break
+		doas cp -a -- "$1" "$temp_file" && break
 	done
 
 	while :; do
-		doas -- chown -- $UID "$temp" && break
+		doas chown -- $UID "$temp_file" && break
 	done
 fi
 
-# Remove the temp file when exit.
-trap "rm -f -- $temp" EXIT
+trap "rm -f -- \"$temp_file\"; sync" EXIT
 
-[[ -w $temp ]] || panic 1 "$1: is write protected, aborted..."
+[[ -w $temp_file ]] || panic 1 "$1: is write protected, aborted..."
 
-#----------------------------------------------------------Start to Edit The File
+[[ $EDITOR ]] || declare -xr EDITOR=vi
 
-EDITOR=${EDITOR:-vi}
-
-# Edit the temp file.
-if ! $EDITOR "$temp"; then
+if ! "${EDITOR[@]}" "$temp_file"; then
 	panic 1 "unable to use \`$EDITOR\` as an editor..."
 fi
 
 while :; do
-	# Break while loop only when user successfully type password.
-	doas -- cp -a -- "$temp" "$1" && break
+	doas cp -a -- "$temp_file" "$1" && break
 done
